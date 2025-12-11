@@ -1,7 +1,10 @@
 ---
 galaxy_info:
   author: S. Mannem
-  description: CTO
+  description: |
+    HAProxy can be used to proxy tcp connectons including PostgreSQL traffic.
+    This role configures HAProxy so that PostgreSQL traffic can be proxies to PgVillage database servers.
+
   company: Nibble-IT
 
   # If the issue tracker for your role is not on github, uncomment the
