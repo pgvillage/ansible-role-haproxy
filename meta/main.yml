@@ -1,5 +1,7 @@
 ---
 galaxy_info:
+  namespace: pgvillage
+  role_name: haproxy
   author: S. Mannem
   description: |
     HAProxy can be used to proxy tcp connectons including PostgreSQL traffic.
