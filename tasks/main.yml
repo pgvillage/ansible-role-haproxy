@@ -4,16 +4,20 @@
   register: haproxy_semodule_list
   changed_when: false
   when:
-    - ansible_distribution_file_variety is defined
-    - ansible_distribution_file_variety == 'RedHat'
+    - ansible_os_family is defined
+    - ansible_os_family == 'RedHat'
+    - ansible_selinux.status is defined
+    - ansible_selinux.status != 'disabled'
 
 - name: Install haproxy
   ansible.builtin.include_tasks: "install.yml"
 - name: Setup selinux for haproxy
   ansible.builtin.include_tasks: "selinux.yml"
   when:
-    - ansible_distribution_file_variety is defined
-    - ansible_distribution_file_variety == 'RedHat'
+    - ansible_os_family is defined
+    - ansible_os_family == 'RedHat'
+    - ansible_selinux.status is defined
+    - ansible_selinux.status != 'disabled'
     - "'my-haproxy' not in semodule_list.stdout_lines"
 
 - name: Configure haproxy
