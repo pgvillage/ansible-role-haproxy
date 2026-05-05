@@ -8,7 +8,7 @@
 
 - name: Install local haproxy packages when defined
   become: true
-  ansible.builtin.dnf:
+  ansible.builtin.package:
     name: "/tmp/{{ item }}"
     state: "{{ haproxy_package_state }}"
     disable_gpg_check: "true"
@@ -16,14 +16,14 @@
 
 - name: Install haproxy packages when defined
   become: true
-  ansible.builtin.dnf:
+  ansible.builtin.package:
     name: "{{ item }}"
     state: "{{ haproxy_package_state }}"
     disable_gpg_check: "true"
   loop: "{{ haproxy_package_names }}"
 
 - name: Ensure HAProxy is installed.
-  ansible.builtin.dnf:
+  ansible.builtin.package:
     name:
       - "{{ item }}"
       - checkpolicy
