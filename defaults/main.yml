@@ -1,4 +1,8 @@
 ---
+
+haproxy_mode: tcp
+haproxy_stats_port: 8404
+
 haproxy_package_state: present
 
 haproxy_local_package_names: []
