@@ -7,7 +7,9 @@ global
         maxconn                 {{ haproxy_maxconn }}
         maxsessrate             {{ haproxy_maxconn }}
         #chroot                 /var/lib/haproxy
-        pidfile                 /var/run/haproxy.pid
+        external-check
+        insecure-fork-wanted
+        #pidfile                 /var/run/haproxy.pid
         user                    {{ haproxy_user }}
         group                   {{ haproxy_group }}
         daemon
