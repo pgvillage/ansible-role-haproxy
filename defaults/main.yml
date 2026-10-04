@@ -10,7 +10,6 @@ haproxy_package_names:
   - haproxy
 
 haproxy_maxconn: 1000
-haproxy_default_mode: "tcp"
 
 haproxy_defaults_timeouts:
   - "client     31m"
@@ -18,7 +17,6 @@ haproxy_defaults_timeouts:
   - "check      5s"
 
 haproxy_socket: /var/lib/haproxy/stats
-haproxy_chroot: /var/lib/haproxy
 haproxy_user: haproxy
 haproxy_group: haproxy
 
@@ -100,7 +98,3 @@ haproxy_backends: []
 
 # Extra global vars (see README for example usage).
 haproxy_global_vars: []
-# Default haproxy timeouts
-haproxy_connect_timeout: 5000
-haproxy_client_timeout: 50000
-haproxy_server_timeout: 50000
