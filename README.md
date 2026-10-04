@@ -13,7 +13,8 @@ This role aims at using an RPM from the MannemSolutions repo.
 Role Variables
 --------------
 
-Please see [defaults](https://github.com/pgvillage/ansible-role-haproxy/blob/main/defaults/main.yml) for all variables
+Please see the [API documentation](docs/api.md) for a description of all variables.
+The default values are in [defaults/main.yml](defaults/main.yml).
 
 
 Dependencies
