@@ -1,6 +1,6 @@
-# API documentation
+# pgvillage.haproxy API
 
-This document lists every variable this role uses. All variables and their defaults are in
+This document lists the default variables this role uses. These are in
 [`defaults/main.yml`](../defaults/main.yml).
 
 ## Overview
@@ -26,7 +26,7 @@ This document lists every variable this role uses. All variables and their defau
 ### `haproxy_package_state`
 
 State of the HAProxy packages. Accepts any value that `ansible.builtin.package` supports
-(`present`, `latest`, `absent`).
+(`present`, `latest`, `absent`). (`absent` will remove the packeges but is not completely supported for the rest of the role)
 
 ```yaml
 haproxy_package_state: present
@@ -44,6 +44,7 @@ haproxy_package_names:
 ### `haproxy_local_package_names`
 
 List of local package files to copy to `/tmp/` on the target host and install from there.
+Use filenames without directory components (e.g. `haproxy.rpm`, not `packages/haproxy.rpm`).
 Ansible looks the files up in the role's `files` directory or on the Ansible search path.
 
 ```yaml
