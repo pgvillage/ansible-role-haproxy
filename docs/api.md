@@ -26,7 +26,7 @@ This document lists the default variables this role uses. These are in
 ### `haproxy_package_state`
 
 State of the HAProxy packages. Accepts any value that `ansible.builtin.package` supports
-(`present`, `latest`, `absent`). (`absent` will remove the packeges but is not completely supported for the rest of the role)
+(`present`, `latest`, `absent`). (`absent` will remove the packages but is not completely supported for the rest of the role)
 
 ```yaml
 haproxy_package_state: present
