@@ -1,106 +1,101 @@
 ---
 
+# Proxy mode used in the `defaults` section of haproxy.cfg (`tcp` or `http`).
+# Use `tcp` for PostgreSQL traffic.
 haproxy_mode: tcp
+
+# Port on which the HAProxy statistics page (http://<host>:<port>/stats) listens.
 haproxy_stats_port: 8404
 
+# State of the HAProxy packages (`present`, `latest` or `absent`).
 haproxy_package_state: present
 
+# List of local package files (in the role's `files` directory or on the
+# Ansible search path) to copy to the target host and install, e.g.
+# `["haproxy-2.8.3-1.el9.x86_64.rpm"]`.
 haproxy_local_package_names: []
+
+# List of packages to install from the configured package repositories.
 haproxy_package_names:
   - haproxy
 
+# Maximum number of concurrent connections (`maxconn`) for the `global` and
+# `defaults` sections. Also used as the maximum session rate (`maxsessrate`).
 haproxy_maxconn: 1000
-haproxy_default_mode: "tcp"
 
+# List of timeouts for the `defaults` section. Each entry is rendered as
+# `timeout <entry>`, so it should contain the timeout name and value.
 haproxy_defaults_timeouts:
   - "client     31m"
   - "connect    4s"
   - "check      5s"
 
+# Path to the HAProxy admin stats socket.
 haproxy_socket: /var/lib/haproxy/stats
-haproxy_chroot: /var/lib/haproxy
+
+# OS user and group HAProxy runs as.
 haproxy_user: haproxy
 haproxy_group: haproxy
 
-# haproxy_frontends: # zie environments
-#  - name: "PostgresReadWrite-frontend"
-#    address: "*"
-#    port: "{{ postgresql_rw_port }}"
-#    mode: tcp
-#    backend: "PostgresReadWrite-backend"
-#    timeout_client: "10800s"
-#  - name: "PostgresReadOnly-frontend"
-#    address: "*"
-#    port: "{{ postgresql_read_only_port }}"
-#    mode: tcp
-#    backend: "PostgresReadOnly-backend"
-#    timeout_client: "10800s"
-#  - name: "PostgresReadOnlyBouncer-frontend"
-#    address: "*"
-#    port: "{{ pgbouncer_read_only_port }}"
-#    mode: tcp
-#    backend: "PostgresReadOnlyBouncer-backend"
-#    timeout_client: "10800s"
-
+# List of frontends. Every item supports the following keys:
+#   name:           (required) name of the frontend
+#   address:        (required) address to bind to, e.g. "*"
+#   port:           (required) port to bind to
+#   bind_params:    (optional) extra parameters appended to the bind line
+#   mode:           (optional) `tcp` or `http`, defaults to `http`
+#   backend:        (optional) name of the default backend
+#   options:        (optional) list of `option` lines
+#   params:         (optional) list of raw configuration lines
+#   timeout_client: (optional) client timeout, e.g. "10800s"
+#
+# Example:
+# haproxy_frontends:
+#   - name: "PostgresReadWrite-frontend"
+#     address: "*"
+#     port: "{{ postgresql_rw_port }}"
+#     mode: tcp
+#     backend: "PostgresReadWrite-backend"
+#     timeout_client: "10800s"
+#   - name: "PostgresReadOnly-frontend"
+#     address: "*"
+#     port: "{{ postgresql_read_only_port }}"
+#     mode: tcp
+#     backend: "PostgresReadOnly-backend"
+#     timeout_client: "10800s"
 haproxy_frontends: []
-haproxy_backends: []
+
+# List of backends. Every item supports the following keys:
+#   name:           (required) name of the backend
+#   servers:        (required) list of servers, each with:
+#                     name:      (required) server name
+#                     address:   (required) server address
+#                     port:      (required) server port
+#                     checkport: (optional) port used for health checks
+#   mode:           (optional) `tcp` or `http`, defaults to `http`
+#   balance_method: (optional) load balancing algorithm, defaults to `leastconn`
+#   options:        (optional) list of `option` lines
+#   params:         (optional) list of raw configuration lines
+#
+# Example:
 # haproxy_backends:
-#  - name: "PostgresReadWriteActive-backend"
-#    mode: tcp
-#    balance_method: "leastconn"
-#    options:
-#      - "external-check"
-#    params:
-#      - "external-check command  /opt/pgroute66/checkpgprimary.sh"
-#    timeout_server: "10800s"
-#    servers:
+#   - name: "PostgresReadWrite-backend"
+#     mode: tcp
+#     balance_method: "leastconn"
+#     options:
+#       - "external-check"
+#     params:
+#       - "external-check command /opt/pgroute66/checkpgprimary.sh"
+#     servers:
+#       - name: "dbserver1.example.org"
+#         address: "192.168.17.18"
+#         port: "{{ postgresql_rw_port }}"
+#         checkport: "9201"
+#       - name: "dbserver2.example.org"
+#         address: "192.168.17.19"
+#         port: "{{ postgresql_rw_port }}"
+#         checkport: "9201"
+haproxy_backends: []
 
-#  - name: "PostgresReadOnly-backend"
-#    mode: tcp
-#    balance_method: "leastconn"
-#    options:
-#      - "external-check"
-#    params:
-#      - "external-check command  /opt/pgroute66/checkpgstandby.sh"
-#    timeout_server: "10800s"
-#    servers:
-#      - name: "dbserver1.example.org"
-#        address: "192.168.17.18"
-#        port: "{{ postgresql_rw_port }}"
-#        checkport: "9201"
-#      - name: "dbserver2.example.org"
-#        address: "192.168.17.19"
-#        port: "{{ postgresql_rw_port }}"
-#        checkport: "9201"
-#      - name: "dbserver3.example.org"
-#        address: "192.168.17.20"
-#        port: "{{ postgresql_rw_port }}"
-#        checkport: "9201"
-#  - name: "PostgresReadOnlyBouncer-backend"
-#    mode: tcp
-#    balance_method: "leastconn"
-#    options:
-#      - "external-check"
-#    params:
-#      - "external-check command  /opt/pgroute66/checkpgstandby.sh"
-#    timeout_server: "10800s"
-#    servers:
-#      - name: "dbserver1.example.org"
-#        address: "192.168.17.18"
-#        port: "{{ pgbouncer_listen_port }}"
-#        checkport: "9201"
-#      - name: "dbserver2.example.org"
-#        address: "192.168.17.19"
-#        port: "{{ pgbouncer_listen_port }}"
-#        checkport: "9201"
-#      - name: "dbserver3.example.org"
-#        address: "192.168.17.20"
-#        port: "{{ pgbouncer_listen_port }}"
-#        checkport: "9201"
-
-# Extra global vars (see README for example usage).
+# List of extra raw configuration lines added to the `global` section, e.g.
+# `["nbthread 4", "tune.ssl.default-dh-param 2048"]`.
 haproxy_global_vars: []
-# Default haproxy timeouts
-haproxy_connect_timeout: 5000
-haproxy_client_timeout: 50000
-haproxy_server_timeout: 50000
