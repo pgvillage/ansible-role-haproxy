@@ -1,0 +1,33 @@
+---
+# A backend for HAProxy to proxy to: a Python HTTP server on port 8080 that
+# serves a known page.
+- name: Prepare
+  hosts: all
+  tasks:
+    - name: Create the backend's document root
+      ansible.builtin.file:
+        path: /srv/backend
+        state: directory
+        mode: "0755"
+
+    - name: Create the backend's page
+      ansible.builtin.copy:
+        dest: /srv/backend/index.html
+        content: "molecule backend\n"
+        mode: "0644"
+
+    - name: Create the backend service
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/molecule-backend.service
+        content: |
+          [Service]
+          ExecStart=/usr/bin/python3 -m http.server 8080 --bind 127.0.0.1 --directory /srv/backend
+          [Install]
+          WantedBy=multi-user.target
+        mode: "0644"
+
+    - name: Start the backend
+      ansible.builtin.systemd:
+        name: molecule-backend
+        state: started
+        daemon_reload: true
