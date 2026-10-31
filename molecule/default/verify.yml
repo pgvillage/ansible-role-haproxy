@@ -1,0 +1,53 @@
+---
+- name: Verify
+  hosts: all
+  tasks:
+    - name: Read the service states
+      ansible.builtin.service_facts:
+
+    - name: Check that HAProxy runs and is enabled
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.services['haproxy.service'].state == 'running'
+          - ansible_facts.services['haproxy.service'].status == 'enabled'
+
+    - name: Check that the configuration is valid
+      ansible.builtin.command: haproxy -c -f /etc/haproxy/haproxy.cfg
+      changed_when: false
+
+    # Field 18 of the stats csv is the status of a proxy or server
+    - name: Wait until the health check reports the backend server up, on the stats page
+      ansible.builtin.uri:
+        url: http://127.0.0.1:8404/stats;csv
+        return_content: true
+      register: stats
+      until: server_status == 'UP'
+      retries: 15
+      delay: 2
+      vars:
+        server_line: >-
+          {{ (stats.content | default('')).splitlines()
+             | select('match', 'molecule-backend,backend1,') | first | default('') }}
+        server_status: "{{ (server_line ~ ',' * 20).split(',')[17] }}"
+
+    - name: Fetch the backend's page through the frontend
+      ansible.builtin.uri:
+        url: http://127.0.0.1:18080/
+        return_content: true
+      register: page
+      failed_when: page.content != 'molecule backend\n'
+
+    - name: Check that the frontend counted the session, on the stats socket
+      ansible.builtin.shell: |
+        set -o pipefail
+        echo "show stat" | python3 -c '
+        import socket, sys
+        s = socket.socket(socket.AF_UNIX); s.connect("/var/lib/haproxy/stats")
+        s.sendall(sys.stdin.buffer.read()); out = b""
+        while chunk := s.recv(4096): out += chunk
+        print(out.decode())' | grep '^molecule-frontend,FRONTEND,'
+      args:
+        executable: /bin/bash
+      register: frontend
+      changed_when: false
+      failed_when: frontend.stdout.split(',')[7] | int < 1

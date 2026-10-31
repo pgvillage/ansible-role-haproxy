@@ -1,0 +1,20 @@
+---
+- name: Converge
+  hosts: all
+  vars:
+    haproxy_frontends:
+      - name: molecule-frontend
+        address: "*"
+        port: 18080
+        mode: tcp
+        backend: molecule-backend
+        timeout_client: 60s
+    haproxy_backends:
+      - name: molecule-backend
+        mode: tcp
+        servers:
+          - name: backend1
+            address: 127.0.0.1
+            port: 8080
+  roles:
+    - role: pgvillage.haproxy
