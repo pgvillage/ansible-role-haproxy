@@ -1,4 +1,4 @@
-module my-haproxy 1.0;
+module my-haproxy 1.1;
 
 require {
         type haproxy_t;
@@ -6,12 +6,16 @@ require {
         type shell_exec_t;
         type bin_t;
         type postgresql_port_t;
+        type user_home_dir_t;
         class tcp_socket name_connect;
-        class file { execute execute_no_trans };
+        class file { execute execute_no_trans map };
+        class dir search;
 }
 
+# The external-check scripts (e.g. /opt/pgroute66/checkpgprimary.sh, labeled bin_t) run bash and curl
 allow haproxy_t haproxy_var_lib_t:file { execute execute_no_trans };
-allow haproxy_t shell_exec_t:file execute;
-allow haproxy_t bin_t:file { execute execute_no_trans };
+allow haproxy_t shell_exec_t:file { execute map };
+allow haproxy_t bin_t:file { execute execute_no_trans map };
 allow haproxy_t postgresql_port_t:tcp_socket name_connect;
-
+# curl in the check scripts searches the home dir of the haproxy user (for .curlrc)
+allow haproxy_t user_home_dir_t:dir search;

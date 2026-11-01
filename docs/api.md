@@ -20,6 +20,8 @@ This document lists the default variables this role uses. These are in
 | [`haproxy_frontends`](#haproxy_frontends) | `[]` | List of frontends |
 | [`haproxy_backends`](#haproxy_backends) | `[]` | List of backends |
 | [`haproxy_global_vars`](#haproxy_global_vars) | `[]` | Extra lines for the `global` section |
+| [`haproxy_selinux_connect_any`](#selinux) | `true` | Turn on the SELinux boolean `haproxy_connect_any` |
+| [`haproxy_selinux_dir`](#selinux) | `/etc/haproxy/selinux` | Folder for the SELinux policy module source |
 
 ## Installation
 
@@ -197,3 +199,21 @@ haproxy_backends:
 ```
 
 Default: `[]`
+
+## SELinux
+
+On RedHat family hosts with SELinux enabled, the role:
+
+- turns on the SELinux boolean `haproxy_connect_any` (persistent) when `haproxy_selinux_connect_any` is `true`
+  (default), so HAProxy may listen on and connect to any port: the stats port, frontends like `35433`, and PostgreSQL
+  backends on other ports than `5432`. With `false` the role leaves the boolean alone.
+- makes the folder of `haproxy_socket` owned by `root:{{ haproxy_group }}` with mode `0750`, so the HAProxy master
+  process (root) can create the stats socket without `dac_override` (which SELinux denies).
+- installs the policy module `my-haproxy` (`files/my-haproxy.te`), which lets HAProxy run external-check scripts
+  labeled `bin_t` (e.g. those of pgroute66) with bash and curl. The source is kept in `haproxy_selinux_dir`; the
+  module is rebuilt and installed when it changes, or when it is not installed.
+
+| Variable | Default | Description |
+|---|---|---|
+| `haproxy_selinux_connect_any` | `true` | Turn on the SELinux boolean `haproxy_connect_any` (persistent) |
+| `haproxy_selinux_dir` | `/etc/haproxy/selinux` | Folder for the source of the SELinux policy module |

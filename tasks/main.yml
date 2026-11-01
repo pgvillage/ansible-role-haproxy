@@ -18,7 +18,6 @@
     - ansible_facts.os_family == 'RedHat'
     - ansible_facts.selinux.status is defined
     - ansible_facts.selinux.status != 'disabled'
-    - "'my-haproxy' not in haproxy_semodule_list.stdout_lines"
 
 - name: Configure haproxy
   ansible.builtin.include_tasks: "config.yml"
