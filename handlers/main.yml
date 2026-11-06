@@ -1,5 +1,31 @@
 ---
+# Restarts and reloads are rolling: one host at a time, waiting until the
+# stats port (haproxy_stats_port) answers again before going on to the next
+# host. A handler runs on all notified hosts at once, so the notified hosts
+# first mark themselves, and then one run (run_once) restarts or reloads the
+# marked hosts in turn (delegate_to), see tasks/restart_host.yml.
+# A config change only needs a reload (the old workers keep serving the existing
+# connections); a package upgrade needs a restart, which also covers a reload.
 - name: Restart haproxy
-  ansible.builtin.service:
-    name: haproxy
-    state: restarted
+  ansible.builtin.set_fact:
+    _haproxy_restart_needed: true
+
+- name: Reload haproxy
+  ansible.builtin.set_fact:
+    _haproxy_reload_needed: true
+
+- name: Restart or reload haproxy on one host at a time
+  ansible.builtin.include_tasks: restart_host.yml
+  run_once: true
+  loop: "{{ ansible_play_batch | select('in', _haproxy_restart_hosts) | list }}"
+  loop_control:
+    loop_var: haproxy_restart_host
+  vars:
+    _haproxy_restart_hosts: >-
+      {{ (hostvars | dict2items | selectattr('value._haproxy_restart_needed', 'defined')
+          | selectattr('value._haproxy_restart_needed') | map(attribute='key') | list)
+         + (hostvars | dict2items | selectattr('value._haproxy_reload_needed', 'defined')
+          | selectattr('value._haproxy_reload_needed') | map(attribute='key') | list) }}
+  listen:
+    - Restart haproxy
+    - Reload haproxy

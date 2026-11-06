@@ -1,4 +1,6 @@
 ---
+# On an upgrade, restart HAProxy (rolling, see handlers/main.yml): needrestart
+# leaves haproxy.service alone, so it does not restart it on all hosts at once
 - name: Copy package
   ansible.builtin.copy:
     src: "{{ item }}"
@@ -12,6 +14,7 @@
     name: "/tmp/{{ item }}"
     state: "{{ haproxy_package_state }}"
   loop: "{{ haproxy_local_package_names }}"
+  notify: Restart haproxy
 
 - name: Install haproxy packages when defined
   become: true
@@ -19,6 +22,7 @@
     name: "{{ item }}"
     state: "{{ haproxy_package_state }}"
   loop: "{{ haproxy_package_names }}"
+  notify: Restart haproxy
 
 - name: Ensure HAProxy is installed.
   ansible.builtin.package:
@@ -27,6 +31,7 @@
       - checkpolicy
     state: "{{ haproxy_package_state }}"
   loop: "{{ haproxy_package_names }}"
+  notify: Restart haproxy
 
 - name: Get HAProxy version.
   ansible.builtin.command: haproxy -v
@@ -44,7 +49,7 @@
     dest: /etc/haproxy/haproxy.cfg
     mode: "0644"
     # validate: haproxy -f %s -c -q
-  notify: Restart haproxy
+  notify: Reload haproxy
 
 - name: Ensure HAProxy is started and enabled on boot
   ansible.builtin.service:
