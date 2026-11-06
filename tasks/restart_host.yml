@@ -3,7 +3,8 @@
 # host, with:
 #   haproxy_restart_host: host to restart or reload HAProxy on (delegate_to)
 # The handler runs once for all hosts, so the variables of the restarted host
-# are read from hostvars.
+# are read from hostvars (inventory and facts), falling back to the role defaults
+# (which are not in hostvars).
 
 - name: "Restart or reload haproxy on {{ haproxy_restart_host }}"
   ansible.builtin.service:
@@ -15,8 +16,8 @@
 - name: "Wait until the stats port answers on {{ haproxy_restart_host }}"
   ansible.builtin.wait_for:
     host: 127.0.0.1
-    port: "{{ hostvars[haproxy_restart_host].haproxy_stats_port }}"
-    timeout: "{{ hostvars[haproxy_restart_host].haproxy_restart_wait_timeout }}"
+    port: "{{ hostvars[haproxy_restart_host].haproxy_stats_port | default(haproxy_stats_port) }}"
+    timeout: "{{ hostvars[haproxy_restart_host].haproxy_restart_wait_timeout | default(haproxy_restart_wait_timeout) }}"
   delegate_to: "{{ haproxy_restart_host }}"
 
 - name: "Mark haproxy as restarted on {{ haproxy_restart_host }}"
