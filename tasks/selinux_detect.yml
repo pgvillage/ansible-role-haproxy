@@ -1,0 +1,34 @@
+---
+# Without the bindings, setup reports "Missing selinux Python library" rather
+# than the actual state. The kernel interface also exists in permissive mode.
+- name: Check the SELinux kernel interface when its state is unknown
+  ansible.builtin.stat:
+    path: /sys/fs/selinux/enforce
+    get_checksum: false
+    get_mime: false
+    get_attributes: false
+  register: haproxy_selinux_enforce
+  when: (ansible_facts.selinux.status | default('unknown')) not in ['enabled', 'disabled']
+
+- name: Recover SELinux facts on an active SELinux host
+  when: haproxy_selinux_enforce.stat.exists | default(false)
+  block:
+    - name: Install the SELinux Python bindings
+      ansible.builtin.package:
+        name: "{{ haproxy_selinux_python_packages }}"
+        state: present
+
+    - name: Refresh SELinux facts
+      ansible.builtin.setup:
+        gather_subset:
+          - '!all'
+          - '!min'
+          - selinux
+
+    - name: Check that Ansible can detect active SELinux
+      ansible.builtin.assert:
+        that:
+          - (ansible_facts.selinux.status | default('unknown')) == 'enabled'
+        fail_msg: >-
+          SELinux is active, but Ansible cannot load its Python bindings.
+          Use a system ansible_python_interpreter with the SELinux bindings installed.

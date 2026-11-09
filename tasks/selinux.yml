@@ -1,4 +1,14 @@
 ---
+- name: Install SELinux tools and Python bindings
+  ansible.builtin.package:
+    name: "{{ haproxy_selinux_packages }}"
+    state: present
+
+- name: Get semodule list
+  ansible.builtin.command: semodule -l
+  register: haproxy_semodule_list
+  changed_when: false
+
 # Without it, SELinux denies HAProxy to bind the stats port and the frontends (unreserved_port_t), and to connect to
 # backends on other ports than the PostgreSQL default
 - name: Allow HAProxy to listen on and connect to any port
@@ -36,7 +46,8 @@
   register: haproxy_selinux_te
 
 - name: Build and install the SELinux policy module
-  when: haproxy_selinux_te is changed or 'my-haproxy' not in haproxy_semodule_list.stdout_lines
+  when: haproxy_selinux_te is changed or not (haproxy_semodule_list.stdout is search('(?m)^my-haproxy(?:\\s|$)'))
+  # regex:  multiline mode + the line must start with 'my-haproxy' + followed by whitespace or end of the line.
   block:
     - name: Create temporary build directory
       ansible.builtin.tempfile:
@@ -53,11 +64,20 @@
         semodule -i my-haproxy.pp
       changed_when: true
 
-    - name: Restorecon on /
-      ansible.builtin.command: restorecon -vR /
-      changed_when: false
-
+  always:
     - name: Remove temporary build directory
       ansible.builtin.file:
         path: "{{ haproxy_tempfolder.path }}"
         state: absent
+      when: haproxy_tempfolder.path is defined
+
+- name: Restore SELinux labels on HAProxy files
+  ansible.builtin.command:
+    argv:
+      - restorecon
+      - -RFv
+      - /etc/haproxy
+      - "{{ haproxy_socket | dirname }}"
+      - "{{ haproxy_selinux_dir }}"
+  register: haproxy_restorecon
+  changed_when: haproxy_restorecon.stdout | length > 0

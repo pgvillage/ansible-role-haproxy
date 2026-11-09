@@ -2,6 +2,19 @@
 - name: Verify
   hosts: all
   tasks:
+    - name: Check that SELinux setup is skipped when SELinux is inactive
+      when: (ansible_facts.selinux.status | default('unknown')) != 'enabled'
+      block:
+        - name: Inspect the custom policy directory
+          ansible.builtin.stat:
+            path: /etc/haproxy/selinux
+          register: policy_directory
+
+        - name: Check that no custom policy was deployed
+          ansible.builtin.assert:
+            that:
+              - not policy_directory.stat.exists
+
     - name: Read the service states
       ansible.builtin.service_facts:
 
