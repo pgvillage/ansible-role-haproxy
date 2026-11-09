@@ -9,6 +9,7 @@ This document lists the default variables this role uses. These are in
 |---|---|---|
 | [`haproxy_mode`](#haproxy_mode) | `tcp` | Proxy mode for the `defaults` section |
 | [`haproxy_stats_port`](#haproxy_stats_port) | `8404` | Port for the statistics page |
+| [`haproxy_restart_wait_timeout`](#haproxy_restart_wait_timeout) | `60` | Seconds to wait for the stats port after a restart or reload |
 | [`haproxy_package_state`](#haproxy_package_state) | `present` | State of the HAProxy packages |
 | [`haproxy_local_package_names`](#haproxy_local_package_names) | `[]` | Local package files to copy and install |
 | [`haproxy_package_names`](#haproxy_package_names) | `["haproxy"]` | Packages to install from repositories |
@@ -117,6 +118,20 @@ Port for the HAProxy statistics frontend. The statistics page is served at
 `http://<host>:<port>/stats` and refreshes every 15 seconds.
 
 Default: `8404`
+
+## Restarts and reloads
+
+The role restarts HAProxy when a package (`haproxy_package_names` or `haproxy_local_package_names`) is installed or
+upgraded, and reloads it when `haproxy.cfg` changes (a reload keeps the existing client connections on the old
+workers). Both are rolling: one host at a time, and the role waits until the stats port answers again before it
+restarts or reloads HAProxy on the next host, so clients can still connect through the other hosts. On Ubuntu, exclude
+`haproxy.service` from needrestart, so it does not restart HAProxy on all hosts at once after an upgrade.
+
+### `haproxy_restart_wait_timeout`
+
+Seconds to wait, after a restart or reload, until `haproxy_stats_port` answers, before going on to the next host.
+
+Default: `60`
 
 ## Frontends and backends
 

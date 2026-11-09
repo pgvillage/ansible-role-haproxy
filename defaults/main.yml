@@ -7,6 +7,12 @@ haproxy_mode: tcp
 # Port on which the HAProxy statistics page (http://<host>:<port>/stats) listens.
 haproxy_stats_port: 8404
 
+# Seconds to wait, after a restart or reload, until the stats port answers,
+# before restarting or reloading HAProxy on the next host. HAProxy is restarted
+# (one host at a time) when a package is installed or upgraded, and reloaded
+# when the configuration changes.
+haproxy_restart_wait_timeout: 60
+
 # State of the HAProxy packages (`present`, `latest` or `absent`).
 haproxy_package_state: present
 
