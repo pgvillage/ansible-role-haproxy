@@ -21,3 +21,24 @@
 
 - name: Configure haproxy
   ansible.builtin.include_tasks: "config.yml"
+
+# The package is usually upgraded outside this role (e.g. by the linux role or
+# unattended-upgrades), and needrestart skips haproxy.service. HAProxy still
+# runs the old binary when the binary was replaced (its ctime) after the
+# service started: restart it then (rolling, see handlers/main.yml). (Reading
+# /proc/<pid>/exe would need CAP_SYS_PTRACE, which containers lack.)
+- name: Find out if HAProxy started before its binary was replaced
+  ansible.builtin.shell: |
+    set -e
+    # Start time in microseconds of CLOCK_MONOTONIC (time since boot), 0 if not running
+    started=$(systemctl show --property ExecMainStartTimestampMonotonic --value haproxy.service)
+    if [ "$(systemctl show --property MainPID --value haproxy.service)" -gt 0 ] && [ "${started:-0}" -gt 0 ]; then
+      uptime=$(cut -d. -f1 /proc/uptime)
+      started_at=$(( $(date +%s) - uptime + started / 1000000 ))
+      replaced_at=$(stat -c %Z "$(command -v haproxy)")
+      if [ "$replaced_at" -gt "$started_at" ]; then echo replaced; fi
+    fi
+  register: haproxy_binary_check
+  changed_when: haproxy_binary_check.stdout == 'replaced'
+  check_mode: false
+  notify: Restart haproxy
