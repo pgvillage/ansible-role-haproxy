@@ -30,15 +30,15 @@
 - name: Find out if HAProxy started before its binary was replaced
   ansible.builtin.shell: |
     set -e
-    # Start time in microseconds of CLOCK_MONOTONIC (time since boot), 0 if not running
-    started=$(systemctl show --property ExecMainStartTimestampMonotonic --value haproxy.service)
-    if [ "$(systemctl show --property MainPID --value haproxy.service)" -gt 0 ] && [ "${started:-0}" -gt 0 ]; then
-      uptime=$(cut -d. -f1 /proc/uptime)
-      started_at=$(( $(date +%s) - uptime + started / 1000000 ))
-      replaced_at=$(stat -c %Z "$(command -v haproxy)")
-      if [ "$replaced_at" -gt "$started_at" ]; then echo replaced; fi
+    if [ "$(systemctl show --property MainPID --value haproxy.service)" -gt 0 ]; then
+      # Wall-clock start time (the monotonic one excludes suspends, /proc/uptime includes them)
+      started=$(TZ=UTC systemctl show --property ExecMainStartTimestamp --value haproxy.service)
+      if [ -n "$started" ] && [ "$started" != n/a ]; then
+        replaced_at=$(stat -c %Z "$(command -v haproxy)")
+        if [ "$replaced_at" -gt "$(date -d "$started" +%s)" ]; then echo replaced; fi
+      fi
     fi
   register: haproxy_binary_check
-  changed_when: haproxy_binary_check.stdout == 'replaced'
+  changed_when: haproxy_binary_check.stdout | default('') == 'replaced'
   check_mode: false
   notify: Restart haproxy
