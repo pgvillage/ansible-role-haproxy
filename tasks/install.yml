@@ -42,17 +42,3 @@
 - name: Set HAProxy version.
   ansible.builtin.set_fact:
     haproxy_version: '{{ haproxy_version_result.stdout_lines[0] | regex_replace("^HA-Proxy version ([0-9]\.[0-9]).*$", "\1") }}'
-
-- name: Copy HAProxy configuration in place.
-  ansible.builtin.template:
-    src: haproxy.cfg.j2
-    dest: /etc/haproxy/haproxy.cfg
-    mode: "0644"
-    # validate: haproxy -f %s -c -q
-  notify: Reload haproxy
-
-- name: Ensure HAProxy is started and enabled on boot
-  ansible.builtin.service:
-    name: haproxy
-    state: started
-    enabled: "true"
