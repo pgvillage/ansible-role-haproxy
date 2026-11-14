@@ -9,8 +9,10 @@ haproxy_stats_port: 8404
 
 # Seconds to wait, after a restart or reload, until the stats port answers,
 # before restarting or reloading HAProxy on the next host. HAProxy is restarted
-# (one host at a time) when a package is installed or upgraded, and reloaded
-# when the configuration changes.
+# (one host at a time) when a package is installed or upgraded by this role, or
+# when the HAProxy binary was replaced after HAProxy started (an upgrade outside
+# the role, e.g. by the linux role or unattended-upgrades), and reloaded when the
+# configuration changes.
 haproxy_restart_wait_timeout: 60
 
 # State of the HAProxy packages (`present`, `latest` or `absent`).

@@ -51,3 +51,63 @@
       register: frontend
       changed_when: false
       failed_when: frontend.stdout.split(',')[7] | int < 1
+
+# Simulate a package upgrade outside the role: replace the binary (new ctime)
+# after HAProxy started. Running the role again must then restart HAProxy
+# (rolling over both hosts), and only then.
+- name: Verify the restart after an upgraded binary
+  hosts: all
+  vars:
+    haproxy_frontends:
+      - name: molecule-frontend
+        address: "*"
+        port: 18080
+        mode: tcp
+        backend: molecule-backend
+        timeout_client: 60s
+    haproxy_backends:
+      - name: molecule-backend
+        mode: tcp
+        servers:
+          - name: backend1
+            address: 127.0.0.1
+            port: 8080
+  tasks:
+    - name: Read the main PID before the upgrade
+      ansible.builtin.systemd_service:
+        name: haproxy
+      register: before
+
+    - name: Wait a second, as the start time and ctime have a resolution of 1s
+      ansible.builtin.pause:
+        seconds: 2
+
+    - name: Replace the haproxy binary, as a package upgrade does
+      ansible.builtin.shell: cp -p /usr/sbin/haproxy /usr/sbin/haproxy.new && mv /usr/sbin/haproxy.new /usr/sbin/haproxy
+      changed_when: true
+
+    - name: Run the role again
+      ansible.builtin.include_role:
+        name: pgvillage.haproxy
+
+    - name: Run the handlers
+      ansible.builtin.meta: flush_handlers
+
+    - name: Read the main PID after the restart
+      ansible.builtin.systemd_service:
+        name: haproxy
+      register: after
+
+    - name: Check that HAProxy was restarted
+      ansible.builtin.assert:
+        that: after.status.MainPID != before.status.MainPID
+        fail_msg: "PID before: {{ before.status.MainPID }}, after: {{ after.status.MainPID }}"
+
+    - name: Fetch the backend's page through the restarted frontend
+      ansible.builtin.uri:
+        url: http://127.0.0.1:18080/
+        return_content: true
+      register: page
+      until: page.content | default('') == 'molecule backend\n'
+      retries: 15
+      delay: 2

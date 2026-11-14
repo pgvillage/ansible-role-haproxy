@@ -123,13 +123,19 @@ Default: `8404`
 
 The role restarts HAProxy when a package (`haproxy_package_names` or `haproxy_local_package_names`) is installed or
 upgraded, and reloads it when `haproxy.cfg` changes (a reload keeps the existing client connections on the old
-workers). Both are rolling: one host at a time, and the role waits until the stats port answers again before it
+workers). Packages are usually upgraded outside this role (e.g. by the linux role with `linux_package_state: latest`,
+or by unattended-upgrades), and then HAProxy keeps running the old binary. So the role also restarts HAProxy when the
+`haproxy` binary was replaced (its ctime) after `haproxy.service` started; this task only reports `changed` when a
+restart is needed. Restarts and reloads are rolling: one host at a time, and the role waits until the stats port
+answers again before it
 restarts or reloads HAProxy on the next host, so clients can still connect through the other hosts. On Ubuntu, exclude
 `haproxy.service` from needrestart, so it does not restart HAProxy on all hosts at once after an upgrade.
 
 ### `haproxy_restart_wait_timeout`
 
 Seconds to wait, after a restart or reload, until `haproxy_stats_port` answers, before going on to the next host.
+Each restarted host uses its own `haproxy_stats_port` and `haproxy_restart_wait_timeout` (also when they are set as
+play or role vars): a notified host stores them in a fact before the restarts start.
 
 Default: `60`
 

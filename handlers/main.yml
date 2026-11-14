@@ -2,30 +2,35 @@
 # Restarts and reloads are rolling: one host at a time, waiting until the
 # stats port (haproxy_stats_port) answers again before going on to the next
 # host. A handler runs on all notified hosts at once, so the notified hosts
-# first mark themselves, and then one run (run_once) restarts or reloads the
-# marked hosts in turn (delegate_to), see tasks/restart_host.yml.
+# first store what their restart or reload needs in a fact (play vars and role
+# defaults are not in hostvars), and then one run (run_once) restarts or
+# reloads the hosts with a stored fact in turn (delegate_to), see
+# tasks/restart_host.yml.
 # A config change only needs a reload (the old workers keep serving the existing
 # connections); a package upgrade needs a restart, which also covers a reload.
 - name: Restart haproxy
   ansible.builtin.set_fact:
-    _haproxy_restart_needed: true
+    _haproxy_restart:
+      state: restarted
+      stats_port: "{{ haproxy_stats_port }}"
+      wait_timeout: "{{ haproxy_restart_wait_timeout }}"
 
+# Runs after "Restart haproxy" (handlers run in the order of this file), so a
+# pending restart is kept
 - name: Reload haproxy
   ansible.builtin.set_fact:
-    _haproxy_reload_needed: true
+    _haproxy_restart:
+      state: "{{ _haproxy_restart.state | default('reloaded') }}"
+      stats_port: "{{ haproxy_stats_port }}"
+      wait_timeout: "{{ haproxy_restart_wait_timeout }}"
 
 - name: Restart or reload haproxy on one host at a time
   ansible.builtin.include_tasks: restart_host.yml
   run_once: true
-  loop: "{{ ansible_play_batch | select('in', _haproxy_restart_hosts) | list }}"
+  loop: "{{ ansible_play_batch }}"
   loop_control:
     loop_var: haproxy_restart_host
-  vars:
-    _haproxy_restart_hosts: >-
-      {{ (hostvars | dict2items | selectattr('value._haproxy_restart_needed', 'defined')
-          | selectattr('value._haproxy_restart_needed') | map(attribute='key') | list)
-         + (hostvars | dict2items | selectattr('value._haproxy_reload_needed', 'defined')
-          | selectattr('value._haproxy_reload_needed') | map(attribute='key') | list) }}
+  when: hostvars[haproxy_restart_host]._haproxy_restart | default({}) | length > 0
   listen:
     - Restart haproxy
     - Reload haproxy
