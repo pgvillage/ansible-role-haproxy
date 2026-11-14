@@ -1,23 +1,13 @@
 ---
-- name: Get semodule list
-  ansible.builtin.command: semodule -l
-  register: haproxy_semodule_list
-  changed_when: false
-  when:
-    - ansible_facts.os_family is defined
-    - ansible_facts.os_family == 'RedHat'
-    - ansible_facts.selinux.status is defined
-    - ansible_facts.selinux.status != 'disabled'
+- name: Detect SELinux and recover missing Python bindings
+  ansible.builtin.include_tasks: selinux_detect.yml
 
 - name: Install haproxy
   ansible.builtin.include_tasks: "install.yml"
+
 - name: Setup selinux for haproxy
   ansible.builtin.include_tasks: "selinux.yml"
-  when:
-    - ansible_facts.os_family is defined
-    - ansible_facts.os_family == 'RedHat'
-    - ansible_facts.selinux.status is defined
-    - ansible_facts.selinux.status != 'disabled'
+  when: (ansible_facts.selinux.status | default('unknown')) == 'enabled'
 
 - name: Configure haproxy
   ansible.builtin.include_tasks: "config.yml"

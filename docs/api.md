@@ -223,7 +223,7 @@ Default: `[]`
 
 ## SELinux
 
-On RedHat family hosts with SELinux enabled, the role:
+On any host with SELinux enabled (enforcing or permissive), the role:
 
 - turns on the SELinux boolean `haproxy_connect_any` (persistent) when `haproxy_selinux_connect_any` is `true`
   (default), so HAProxy may listen on and connect to any port: the stats port, frontends like `35433`, and PostgreSQL
@@ -236,7 +236,21 @@ On RedHat family hosts with SELinux enabled, the role:
   labeled `bin_t` (e.g. those of pgroute66) with bash and curl. The source is kept in `haproxy_selinux_dir`; the
   module is rebuilt and installed when it changes, or when it is not installed.
 
+SELinux tools and Python bindings are installed before they are used. HAProxy is configured and started only
+after SELinux setup. OS family is used to select package names, not to decide whether SELinux is active.
+If Ansible reports `Missing selinux Python library` (or SELinux facts are unavailable), the role checks
+`/sys/fs/selinux/enforce`. If SELinux is active, it installs the bindings and refreshes the facts; if the
+bindings still cannot be loaded by Ansible's Python interpreter, the role fails with an explanation.
+When SELinux is inactive, the role skips SELinux packages and policy configuration.
+Relabeling is limited to the HAProxy configuration, policy source, and socket directories.
+
+The policy must provide the HAProxy types and the `haproxy_connect_any` boolean. The role does not enable
+SELinux or switch its enforcement mode. Use the system Python interpreter so the distribution's bindings
+are available.
+
 | Variable | Default | Description |
 |---|---|---|
 | `haproxy_selinux_connect_any` | `true` | Turn on the SELinux boolean `haproxy_connect_any` (persistent) |
 | `haproxy_selinux_dir` | `/etc/haproxy/selinux` | Folder for the source of the SELinux policy module |
+| `haproxy_selinux_python_packages` | Distribution-specific | SELinux and semanage Python bindings; override for other package layouts |
+| `haproxy_selinux_packages` | Distribution-specific | SELinux tools and bindings installed on active SELinux hosts |

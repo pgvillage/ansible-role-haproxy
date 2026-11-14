@@ -24,15 +24,6 @@
   loop: "{{ haproxy_package_names }}"
   notify: Restart haproxy
 
-- name: Ensure HAProxy is installed.
-  ansible.builtin.package:
-    name:
-      - "{{ item }}"
-      - checkpolicy
-    state: "{{ haproxy_package_state }}"
-  loop: "{{ haproxy_package_names }}"
-  notify: Restart haproxy
-
 - name: Get HAProxy version.
   ansible.builtin.command: haproxy -v
   register: haproxy_version_result

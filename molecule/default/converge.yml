@@ -16,5 +16,11 @@
           - name: backend1
             address: 127.0.0.1
             port: 8080
+  pre_tasks:
+    # Exercise the missing-library fallback on a host without active SELinux.
+    - name: Simulate missing SELinux bindings in the EL10 container
+      ansible.builtin.set_fact:
+        ansible_facts: "{{ ansible_facts | combine({'selinux': {'status': 'Missing selinux Python library'}}) }}"
+      when: inventory_hostname == 'haproxy-el10'
   roles:
     - role: pgvillage.haproxy

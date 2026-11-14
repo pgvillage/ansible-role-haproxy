@@ -45,7 +45,15 @@ haproxy_socket: /var/lib/haproxy/stats
 haproxy_user: haproxy
 haproxy_group: haproxy
 
-# SELinux (only on RedHat family hosts with SELinux enabled)
+# SELinux (on any host with SELinux enabled, including permissive mode)
+# OS family selects package names, not whether SELinux is configured.
+haproxy_selinux_python_packages: >-
+  {{ ['python3-libselinux', 'python3-libsemanage'] if ansible_facts.os_family == 'RedHat'
+     else ['python3-selinux', 'python3-semanage'] }}
+haproxy_selinux_packages: >-
+  {{ ['checkpolicy', 'policycoreutils'] + haproxy_selinux_python_packages
+     + (['semodule-utils'] if ansible_facts.os_family == 'Debian' else []) }}
+
 # Turn on the SELinux boolean haproxy_connect_any (persistent), so HAProxy may listen on and connect to any port
 # (e.g. the stats port, frontends like 35433 and PostgreSQL backends on 5433). With false the role leaves it alone.
 haproxy_selinux_connect_any: true
