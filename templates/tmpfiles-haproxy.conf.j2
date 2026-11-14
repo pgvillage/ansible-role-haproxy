@@ -1,0 +1,6 @@
+# {{ ansible_managed }} (pgvillage.haproxy)
+# Replaces /usr/lib/tmpfiles.d/haproxy.conf of the package, see tasks/selinux.yml
+{% if haproxy_socket | dirname != '/var/lib/haproxy' %}
+d /var/lib/haproxy 0755 root root - -
+{% endif %}
+d {{ haproxy_socket | dirname }} 0750 root {{ haproxy_group }} - -

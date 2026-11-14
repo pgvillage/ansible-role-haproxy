@@ -18,6 +18,18 @@
     group: "{{ haproxy_group }}"
     mode: "0750"
 
+# systemd-tmpfiles sets the folder back to the owner and mode of the package (/usr/lib/tmpfiles.d/haproxy.conf:
+# root:root 0755) at boot, and after every dnf transaction that installs a file in /usr/lib/tmpfiles.d (the file
+# trigger of systemd runs `systemd-tmpfiles --create` for all of them). A file with the same name in /etc/tmpfiles.d
+# replaces the one of the package, so it keeps the owner and mode above.
+- name: Keep the owner and mode of the stats socket folder with systemd-tmpfiles
+  ansible.builtin.template:
+    src: tmpfiles-haproxy.conf.j2
+    dest: /etc/tmpfiles.d/haproxy.conf
+    owner: root
+    group: root
+    mode: "0644"
+
 - name: Create the folder for the SELinux policy module
   ansible.builtin.file:
     path: "{{ haproxy_selinux_dir }}"

@@ -223,7 +223,9 @@ On RedHat family hosts with SELinux enabled, the role:
   (default), so HAProxy may listen on and connect to any port: the stats port, frontends like `35433`, and PostgreSQL
   backends on other ports than `5432`. With `false` the role leaves the boolean alone.
 - makes the folder of `haproxy_socket` owned by `root:{{ haproxy_group }}` with mode `0750`, so the HAProxy master
-  process (root) can create the stats socket without `dac_override` (which SELinux denies).
+  process (root) can create the stats socket without `dac_override` (which SELinux denies). It also writes
+  `/etc/tmpfiles.d/haproxy.conf` (replacing the package's `/usr/lib/tmpfiles.d/haproxy.conf`, which has
+  `root:root 0755`), so systemd-tmpfiles keeps this owner and mode at boot and after package installs.
 - installs the policy module `my-haproxy` (`files/my-haproxy.te`), which lets HAProxy run external-check scripts
   labeled `bin_t` (e.g. those of pgroute66) with bash and curl. The source is kept in `haproxy_selinux_dir`; the
   module is rebuilt and installed when it changes, or when it is not installed.
